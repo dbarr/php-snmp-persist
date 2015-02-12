@@ -29,6 +29,8 @@ class Persist
             'func' => $func,
             'type' => $type
         );
+
+        $this->sortedOids = $this->sortOids(array_keys($this->snmp_actions));
     }
 
     public function fork()
@@ -98,12 +100,14 @@ class Persist
     {
         $oid = trim(fgets($this->input));
 
-        $oids = array_keys($this->snmp_actions);
-
-        if (array_search($oid, $oids, true) === false)
+        if (array_key_exists($oid, $this->snmp_actions) === false) {
+            $oids = array_keys($this->snmp_actions);
             $oids[] = $oid;
-
-        $sortedoids = $this->sortOids($oids);
+            $sortedoids = $this->sortOids($oids);
+        }
+        else {
+            $sortedoids = $this->sortedOids;
+        }
 
         $key = array_search($oid, $sortedoids, true);
 
