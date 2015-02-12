@@ -52,12 +52,10 @@ class Persist
 
             while (1) {
                 if (array_key_exists($i, $a_s) && !array_key_exists($i, $b_s)) {
-                    if ($interesting) printf("%s > %s\n", $a, $b);
                     return 1;
                 }
 
                 if (!array_key_exists($i, $a_s) && array_key_exists($i, $b_s)) {
-                    if ($interesting) printf("%s < %s\n", $a, $b);
                     return -1;
                 }
 
