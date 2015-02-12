@@ -3,6 +3,8 @@ namespace Snmp;
 
 class Persist
 {
+    private $sortedOids = false;
+
     public function setInput($input=STDIN)
     {
         $this->input = $input;
@@ -35,28 +37,33 @@ class Persist
         if ($pid == -1) {
             die("Could not fork the snmp");
         } else if ($pid) {
-             pcntl_wait($status); 
+             pcntl_wait($status);
         } else {
             $this->run();
         }
     }
 
-    private function sortOids()
+    private function sortOids($oids)
     {
-        $keys = array_keys($this->snmp_actions);
-        usort($keys, function ($a, $b){
+        usort($oids, function ($a, $b){
             $a_s = explode(".", $a);
             $b_s = explode(".", $b);
             $i = 0;
-            while(1){
-                if($i> count($a_s)){
-                    if($i > count($b_s)){
-                        return 0;
-                    } else {
-                        return -1;
-                    }
-                }else if($i > count($a_s)){
+$interesting = ($a == '.1.3.6.1.4.1.2021.248.2' || $b == '.1.3.6.1.4.1.2021.248.2');
+
+            while (1) {
+                if (array_key_exists($i, $a_s) && !array_key_exists($i, $b_s)) {
+                    if ($interesting) printf("%s > %s\n", $a, $b);
                     return 1;
+                }
+
+                if (!array_key_exists($i, $a_s) && array_key_exists($i, $b_s)) {
+                    if ($interesting) printf("%s < %s\n", $a, $b);
+                    return -1;
+                }
+
+                if (!array_key_exists($i, $a_s) && !array_key_exists($i, $b_s)) {
+                    return 0;
                 }
 
                 if ($a_s[$i] < $b_s[$i]) {
@@ -66,14 +73,13 @@ class Persist
                 }
                 $i++;
             }
-            return str_replace(".", "", $a) > str_replace(".", "", $b);
+            return 0;
         });
-        return $keys;
+        return $oids;
     }
 
     public function run()
     {
-        $this->sortedOids = $this->sortOids();
         while($cmd = fgets($this->input)){
             $cmd = strtoupper(trim($cmd));
             switch ($cmd){
@@ -93,30 +99,21 @@ class Persist
 
     private function getNext()
     {
-        $next_oid = null;
         $oid = trim(fgets($this->input));
-        $keys = $this->sortedOids;
-        if($oid == $this->base_oid){
-            $next_oid = @$keys[0];
-        } else if ($oid == end($keys)) {
-            $next_oid = 'ENDOFOID';
-        }else {
-            $index = 0;
-            foreach($keys as $key){
-                if($key == $oid){
-                    $index++;
-                    break;
-                }
-                $index++;
-            }
-            if($index == count($keys)){
-                $next_oid = @$keys[0];
-            }else {
-                $next_oid = @$keys[$index];
-            }
-        }
 
-        $this->getOid($next_oid);
+        $oids = array_keys($this->snmp_actions);
+
+        if (array_search($oid, $oids, true) === false)
+            $oids[] = $oid;
+
+        $sortedoids = $this->sortOids($oids);
+
+        $key = array_search($oid, $sortedoids, true);
+
+        if (array_key_exists($key + 1, $sortedoids) === false)
+            $this->getOid('ENDOFOIDS');
+        else
+            $this->getOid($sortedoids[$key + 1]);
     }
 
     private function get()
