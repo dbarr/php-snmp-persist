@@ -49,7 +49,6 @@ class Persist
             $a_s = explode(".", $a);
             $b_s = explode(".", $b);
             $i = 0;
-$interesting = ($a == '.1.3.6.1.4.1.2021.248.2' || $b == '.1.3.6.1.4.1.2021.248.2');
 
             while (1) {
                 if (array_key_exists($i, $a_s) && !array_key_exists($i, $b_s)) {
